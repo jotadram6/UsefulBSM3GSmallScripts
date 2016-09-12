@@ -108,3 +108,22 @@ def TriggerEff(RootFile,Trigger1DenVar,Trigger2NumVar,RBin,PDFname):
     EffAsymmErrors.Draw("ALP")
     CurCanv.Print(PDFname,"Title:"+Trigger2NumVar.split("/")[1])
     EffFile.Close()
+
+def ExtractHistos(RootFile,HistosList,RBinList,PDFname,DrawOpt):
+    if len(HistosList)!=len(RBinList): 
+        print "ERROR: List of rebinning must have the same number of entries as histograms list"
+        return 0
+    RFile= ROOT.TFile(RootFile, "read")
+    CurCanv = canvas("MyPlot", (600, 600))
+    for i in xrange(len(HistosList)):
+        HistoT=ROOT.gDirectory.Get(HistosList[i])
+        HistoT.Sumw2()
+        HistoT.Rebin(RBinList[i])
+        HistoT.Draw(DrawOpt)
+        if i!=0 and i!=(len(HistosList)-1):
+            CurCanv.Print(PDFname,"Title:"+HistosList[i].split("/")[1])
+        elif i==0:
+            CurCanv.Print(PDFname+"(","Title:"+HistosList[i].split("/")[1])
+        elif i==(len(HistosList)-1):
+            CurCanv.Print(PDFname+")","Title:"+HistosList[i].split("/")[1])
+    RFile.Close()
