@@ -127,3 +127,19 @@ def ExtractHistos(RootFile,HistosList,RBinList,PDFname,DrawOpt):
         elif i==(len(HistosList)-1):
             CurCanv.Print(PDFname+")","Title:"+HistosList[i].split("/")[1])
     RFile.Close()
+
+def IntegrateHistos(RootFiles,HistosList,Min,Max):
+    #if len(HistosList)!=len(RBinList): 
+    #    print "ERROR: List of rebinning must have the same number of entries as histograms list"
+    #    return 0
+    for j in xrange(len(RootFiles)):
+        RFile= ROOT.TFile(RootFiles[j], "read")
+        print "Processing", RootFiles[j]
+        for i in xrange(len(HistosList)):
+            HistoT=ROOT.gDirectory.Get(HistosList[i])
+            #HistoT.Sumw2()
+            integral_error=ROOT.Double(0.)
+            Integral=HistoT.IntegralAndError(HistoT.GetXaxis().FindBin(Min),HistoT.GetXaxis().FindBin(Max),integral_error)
+            print "Integral: {0:.3f}+-{1:.3f}".format(Integral,integral_error)
+            del(HistoT)
+        RFile.Close()
