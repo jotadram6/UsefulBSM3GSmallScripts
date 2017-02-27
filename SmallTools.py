@@ -109,7 +109,94 @@ def TriggerEff(RootFile,Trigger1DenVar,Trigger2NumVar,RBin,PDFname):
     CurCanv.Print(PDFname,"Title:"+Trigger2NumVar.split("/")[1])
     EffFile.Close()
 
-def ExtractHistos(RootFile,HistosList,RBinList,PDFname,DrawOpt):
+def loopdir(dire):
+    """//file loopdir.C
+void loopdir (TDirectory *dir) {
+   //loop on all keys of dir including possible subdirs
+   //print a message for all keys with a class TH1
+
+   TIter next (dir->GetListOfKeys());
+   TKey *key;
+   while ((key = (TKey*)next())) {
+      if (strstr(key->GetClassName(),"TH1")) {
+         printf (" key : %s is a %s in %s\n",
+                 key->GetName(),key->GetClassName(),dir->GetPath());
+      }
+      if (!strcmp(key->GetClassName(),"TDirectory")) {
+         dir->cd(key->GetName());
+         TDirectory *subdir = gDirectory;
+         loopdir(subdir);
+         dir->cd();
+      }
+   }
+}
+"""
+    #dire.ls()
+    ListOfKeys=dire.GetListOfKeys()
+    #print ListOfKeys
+    nexti = ROOT.TIter(ListOfKeys)
+    key = ROOT.TKey; key = nexti()
+    while key:
+        #print "Key infos", key.GetName(), key.GetClassName(), dire.GetPath()
+        if "TH1" in key.GetClassName():
+            print key.GetName(), key.GetClassName(), dire.GetPath()
+        if "TDirectory" in key.GetClassName():
+            dire.cd(key.GetName())
+            subdir = ROOT.gDirectory
+            loopdir(subdir)
+            dire.cd()
+        key = nexti()
+
+def SearchHisto(dire,SubDir,histoName,histType):
+    #dire.ls()
+    ListOfKeys=dire.GetListOfKeys()
+    #print ListOfKeys
+    nexti = ROOT.TIter(ListOfKeys)
+    key = ROOT.TKey; key = nexti()
+    while key:
+        #print "Key infos", key.GetName(), key.GetClassName(), dire.GetPath()
+        if (histType in key.GetClassName()) and (histoName == key.GetName()) and (SubDir in  dire.GetPath()):
+            print key.GetName(), key.GetClassName(), dire.GetPath()
+            ToGet=dire.GetPath()+"/"+key.GetName(); print ToGet
+            return ROOT.gDirectory.Get(ToGet.split(":")[-1][1:])
+        if "TDirectory" in key.GetClassName():
+            dire.cd(key.GetName())
+            subdir = ROOT.gDirectory
+            SearchHisto(subdir,SubDir,histoName,histType)
+            dire.cd()
+        key = nexti()
+
+def RatioPlot(RootFile1,RootFile2,Subdir,NumVar,DenVar,RBin,PDFname):
+    RFile1 = ROOT.TFile(RootFile1, "read")
+    RFile1.ls()
+    Keys1 = RFile1.GetListOfKeys()
+    #NumeratorO=ROOT.gDirectory.Get(NumVar)
+    #NumeratorO.DrawCopy("","_copy")
+    #Numerator=ROOT.gDirectory.Get(NumVar+"_copy")
+    #Numerator.Draw(NumVar+" >> NumeratorHistogram(50,1000,5000)")
+    #RFile1.Close()
+    #Numerator=ROOT.TH1F()
+    #Numerator=ROOT.gDirectory.Get(NumVar)
+    Numerator=SearchHisto(RFile1,Subdir,NumVar,"TH1F")
+    RFile2 = ROOT.TFile(RootFile2, "read")
+    RFile2.ls()
+    #DenominatorO=ROOT.gDirectory.Get(DenVar)
+    #DenominatorO.DrawCopy("","_copy")
+    #Denominator=ROOT.gDirectory.Get(DenVar+"_copy")
+    #RFile2.Close()
+    #Denominator=ROOT.TH1F()
+    #Denominator=ROOT.gDirectory.Get(DenVar)
+    Denominator=SearchHisto(RFile2,Subdir,NumVar,"TH1F")
+    Numerator.Sumw2(); Denominator.Sumw2()
+    Numerator.Rebin(RBin); Denominator.Rebin(RBin)
+    EffAsymmErrors = ROOT.TGraphAsymmErrors(Numerator,Denominator,"cl=0.683 b(1,1) mode")
+    CurCanv = canvas("MyPlot", (600, 600))
+    EffAsymmErrors.Draw("ALP")
+    CurCanv.Print(PDFname,"Title:"+NumVar.split("/")[1])
+    RFile1.Close()
+    #RFile2.Close()
+
+def ExtractHistos(RootFile,HistosList,RBinList,PDFname,DrawOpt,Norm1):
     if len(HistosList)!=len(RBinList): 
         print "ERROR: List of rebinning must have the same number of entries as histograms list"
         return 0
@@ -119,11 +206,15 @@ def ExtractHistos(RootFile,HistosList,RBinList,PDFname,DrawOpt):
         HistoT=ROOT.gDirectory.Get(HistosList[i])
         HistoT.Sumw2()
         HistoT.Rebin(RBinList[i])
+        if Norm1:
+            HistoT.Scale(1./HistoT.Integral())
         HistoT.Draw(DrawOpt)
         if i!=0 and i!=(len(HistosList)-1):
             CurCanv.Print(PDFname,"Title:"+HistosList[i].split("/")[1])
-        elif i==0:
+        elif i==0 and len(HistosList)!=1:
             CurCanv.Print(PDFname+"(","Title:"+HistosList[i].split("/")[1])
+        elif i==0 and len(HistosList)==1:
+            CurCanv.Print(PDFname,"Title:"+HistosList[i].split("/")[1])
         elif i==(len(HistosList)-1):
             CurCanv.Print(PDFname+")","Title:"+HistosList[i].split("/")[1])
     RFile.Close()
