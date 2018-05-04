@@ -18,8 +18,8 @@ def AddSys(MeanValue,StatsError,ListOfSys):
     
 
 Tags=["QCD","W","DY","TT","VV"]
-MeanValues=[840.4,4140.8,3709.9,687.1,86.8] #QCD, W, DY, TT, VV
-AssociatedErrors=[154.7,818.5,731.6,129.0,18.2]
+MeanValues=[2146.3,3635.0,4116.8,665.0,87.0] #QCD, W, DY, TT, VV
+AssociatedErrors=[150.0,88.0,74.8,30.4,10.8]
 Sys=[QCD_ListOfSys,WJets_ListOfSys,DY_ListOfSys,TT_ListOfSys,VV_ListOfSys]
 
 for j in xrange(len(MeanValues)):
